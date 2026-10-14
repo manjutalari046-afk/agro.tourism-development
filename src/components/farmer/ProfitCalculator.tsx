@@ -1,30 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   DollarSign,
   TrendingUp,
-  PieChart as PieIcon,
   Save,
   Check,
   Info,
   Trash2,
   Plus,
-  ArrowRight,
   Printer,
   Sparkles,
 } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Cell,
-  PieChart,
-  Pie,
-  Legend,
-} from 'recharts';
-import { UserProfile, CropProfitEstimate, CropCostItem } from '../../types';
+import { CropProfitEstimate, CropCostItem, UserProfile } from '../../types';
 import { farmStore } from '../../services/store';
 
 interface ProfitCalculatorProps {
@@ -55,70 +41,82 @@ export const ProfitCalculator: React.FC<ProfitCalculatorProps> = ({ currentUser 
   );
   const [justSaved, setJustSaved] = useState(false);
 
-  // Arithmetic formulas
-  const totalEstimatedCost = expenses.reduce((sum, item) => sum + item.amount, 0);
-  const costPerAcre = cultivatedAreaAcres > 0 ? totalEstimatedCost / cultivatedAreaAcres : 0;
-  const totalExpectedYieldQuintals = expectedYieldPerAcre * cultivatedAreaAcres;
-  const estimatedGrossRevenue = totalExpectedYieldQuintals * expectedSellingPrice;
-  const estimatedNetReturn = estimatedGrossRevenue - totalEstimatedCost;
-  const breakEvenPricePerQuintal = totalExpectedYieldQuintals > 0 ? totalEstimatedCost / totalExpectedYieldQuintals : 0;
-  const breakEvenYieldQuintals = expectedSellingPrice > 0 ? totalEstimatedCost / expectedSellingPrice : 0;
-  const roiPct = totalEstimatedCost > 0 ? (estimatedNetReturn / totalEstimatedCost) * 100 : 0;
+  // Memoized Arithmetic formulas (Efficiency)
+  const totalEstimatedCost = useMemo(() => {
+    return expenses.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  }, [expenses]);
+
+  const costPerAcre = useMemo(() => {
+    return cultivatedAreaAcres > 0 ? totalEstimatedCost / cultivatedAreaAcres : 0;
+  }, [totalEstimatedCost, cultivatedAreaAcres]);
+
+  const totalExpectedYieldQuintals = useMemo(() => {
+    return (expectedYieldPerAcre || 0) * (cultivatedAreaAcres || 0);
+  }, [expectedYieldPerAcre, cultivatedAreaAcres]);
+
+  const estimatedGrossRevenue = useMemo(() => {
+    return totalExpectedYieldQuintals * (expectedSellingPrice || 0);
+  }, [totalExpectedYieldQuintals, expectedSellingPrice]);
+
+  const estimatedNetReturn = useMemo(() => {
+    return estimatedGrossRevenue - totalEstimatedCost;
+  }, [estimatedGrossRevenue, totalEstimatedCost]);
+
+  const breakEvenPricePerQuintal = useMemo(() => {
+    return totalExpectedYieldQuintals > 0 ? totalEstimatedCost / totalExpectedYieldQuintals : 0;
+  }, [totalEstimatedCost, totalExpectedYieldQuintals]);
+
+  const breakEvenYieldQuintals = useMemo(() => {
+    return expectedSellingPrice > 0 ? totalEstimatedCost / expectedSellingPrice : 0;
+  }, [totalEstimatedCost, expectedSellingPrice]);
+
+  const roiPct = useMemo(() => {
+    return totalEstimatedCost > 0 ? (estimatedNetReturn / totalEstimatedCost) * 100 : 0;
+  }, [estimatedNetReturn, totalEstimatedCost]);
 
   // Sensitivity Analysis Grid (-15%, Baseline, +15%)
-  const sensitivityData = [
-    {
-      scenario: 'Pessimistic (-15% Yield/Price)',
-      yield: Math.round(totalExpectedYieldQuintals * 0.85),
-      price: Math.round(expectedSellingPrice * 0.85),
-      netReturn: Math.round(totalExpectedYieldQuintals * 0.85 * expectedSellingPrice * 0.85 - totalEstimatedCost),
-    },
-    {
-      scenario: 'Baseline Estimate',
-      yield: Math.round(totalExpectedYieldQuintals),
-      price: Math.round(expectedSellingPrice),
-      netReturn: Math.round(estimatedNetReturn),
-    },
-    {
-      scenario: 'Optimistic (+15% Yield/Price)',
-      yield: Math.round(totalExpectedYieldQuintals * 1.15),
-      price: Math.round(expectedSellingPrice * 1.15),
-      netReturn: Math.round(totalExpectedYieldQuintals * 1.15 * expectedSellingPrice * 1.15 - totalEstimatedCost),
-    },
-  ];
+  const sensitivityData = useMemo(() => {
+    return [
+      {
+        scenario: 'Pessimistic (-15% Yield/Price)',
+        yield: Math.round(totalExpectedYieldQuintals * 0.85),
+        price: Math.round(expectedSellingPrice * 0.85),
+        netReturn: Math.round(totalExpectedYieldQuintals * 0.85 * expectedSellingPrice * 0.85 - totalEstimatedCost),
+      },
+      {
+        scenario: 'Baseline Estimate',
+        yield: Math.round(totalExpectedYieldQuintals),
+        price: Math.round(expectedSellingPrice),
+        netReturn: Math.round(estimatedNetReturn),
+      },
+      {
+        scenario: 'Optimistic (+15% Yield/Price)',
+        yield: Math.round(totalExpectedYieldQuintals * 1.15),
+        price: Math.round(expectedSellingPrice * 1.15),
+        netReturn: Math.round(totalExpectedYieldQuintals * 1.15 * expectedSellingPrice * 1.15 - totalEstimatedCost),
+      },
+    ];
+  }, [totalExpectedYieldQuintals, expectedSellingPrice, estimatedNetReturn, totalEstimatedCost]);
 
-  // Expense Category Grouping for Pie Chart
-  const expenseByCategory = expenses.reduce((acc, item) => {
-    acc[item.category] = (acc[item.category] || 0) + item.amount;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const pieData = Object.entries(expenseByCategory).map(([category, amount]) => ({
-    name: category,
-    value: amount,
-  }));
-
-  const COLORS = ['#059669', '#10b981', '#34d399', '#6ee7b7', '#f59e0b', '#3b82f6', '#8b5cf6'];
-
-  const handleAddExpense = () => {
+  const handleAddExpense = useCallback(() => {
     const newItem: CropCostItem = {
       id: String(Date.now()),
       name: 'Additional Field Operation',
       category: 'Labour',
       amount: 2000,
     };
-    setExpenses([...expenses, newItem]);
-  };
+    setExpenses((prev) => [...prev, newItem]);
+  }, []);
 
-  const handleUpdateExpense = (id: string, field: keyof CropCostItem, val: any) => {
-    setExpenses(
-      expenses.map((item) => (item.id === id ? { ...item, [field]: val } : item))
+  const handleUpdateExpense = useCallback((id: string, field: keyof CropCostItem, val: any) => {
+    setExpenses((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, [field]: val } : item))
     );
-  };
+  }, []);
 
-  const handleRemoveExpense = (id: string) => {
-    setExpenses(expenses.filter((item) => item.id !== id));
-  };
+  const handleRemoveExpense = useCallback((id: string) => {
+    setExpenses((prev) => prev.filter((item) => item.id !== id));
+  }, []);
 
   const handleSaveCalculation = () => {
     const calc: CropProfitEstimate = {
@@ -147,12 +145,12 @@ export const ProfitCalculator: React.FC<ProfitCalculatorProps> = ({ currentUser 
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8" role="region" aria-label="Crop Profit Calculator">
       {/* Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-200 pb-5">
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 mb-2">
-            <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+            <DollarSign className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true" />
             <span>Farm Financial & Break-Even Modeling</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-stone-900">
@@ -165,16 +163,17 @@ export const ProfitCalculator: React.FC<ProfitCalculatorProps> = ({ currentUser 
 
         <button
           onClick={() => window.print()}
-          className="px-3.5 py-2 rounded-lg bg-white border border-stone-300 text-stone-700 hover:bg-stone-50 text-xs font-medium flex items-center gap-1.5 shadow-2xs self-start"
+          className="px-3.5 py-2 rounded-lg bg-white border border-stone-300 text-stone-700 hover:bg-stone-50 text-xs font-medium flex items-center gap-1.5 shadow-2xs self-start focus-visible:outline-2 focus-visible:outline-emerald-600"
+          aria-label="Print or export cultivation balance sheet"
         >
-          <Printer className="w-3.5 h-3.5" />
+          <Printer className="w-3.5 h-3.5 text-stone-500" aria-hidden="true" />
           <span>Print Balance Sheet</span>
         </button>
       </div>
 
       {/* Honest Arithmetic Disclaimer */}
-      <div className="p-3.5 bg-stone-100 rounded-xl border border-stone-200 text-xs text-stone-600 flex items-start gap-3">
-        <Info className="w-4 h-4 text-stone-500 shrink-0 mt-0.5" />
+      <div className="p-3.5 bg-stone-100 rounded-xl border border-stone-200 text-xs text-stone-700 flex items-start gap-3" role="note">
+        <Info className="w-4 h-4 text-stone-500 shrink-0 mt-0.5" aria-hidden="true" />
         <div>
           <strong>Economic Model Notice: </strong>
           Calculations are based strictly on farmer-provided expense inputs and historical APMC market trends. FarmBridge AI does not guarantee actual selling prices or agricultural harvests. Use this tool to plan capital requirements and avoid debt traps.
@@ -189,53 +188,58 @@ export const ProfitCalculator: React.FC<ProfitCalculatorProps> = ({ currentUser 
               Cultivation Inputs & Area
             </h2>
             <div className="flex items-center gap-2">
+              <label htmlFor="crop-name-input" className="sr-only">Crop Name</label>
               <input
+                id="crop-name-input"
                 type="text"
                 value={cropName}
                 onChange={(e) => setCropName(e.target.value)}
-                className="text-xs font-semibold text-stone-800 border-b border-stone-300 focus:outline-hidden text-right"
+                className="text-xs font-semibold text-stone-800 border-b border-stone-300 focus:outline-hidden text-right focus-visible:ring-1 focus-visible:ring-emerald-500"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3 bg-stone-50 p-3.5 rounded-xl border border-stone-200">
             <div>
-              <label className="block text-[11px] font-semibold text-stone-600 mb-1">
+              <label htmlFor="area-input" className="block text-[11px] font-semibold text-stone-600 mb-1">
                 Land Area (Acres)
               </label>
               <input
+                id="area-input"
                 type="number"
                 min="0.5"
                 step="0.5"
                 value={cultivatedAreaAcres}
                 onChange={(e) => setCultivatedAreaAcres(parseFloat(e.target.value) || 1)}
-                className="w-full text-xs px-2.5 py-1.5 rounded border border-stone-300 font-bold"
+                className="w-full text-xs px-2.5 py-1.5 rounded border border-stone-300 font-bold focus-visible:ring-2 focus-visible:ring-emerald-500"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-semibold text-stone-600 mb-1">
+              <label htmlFor="yield-input" className="block text-[11px] font-semibold text-stone-600 mb-1">
                 Yield (Qtl/Acre)
               </label>
               <input
+                id="yield-input"
                 type="number"
                 min="1"
                 value={expectedYieldPerAcre}
                 onChange={(e) => setExpectedYieldPerAcre(parseFloat(e.target.value) || 1)}
-                className="w-full text-xs px-2.5 py-1.5 rounded border border-stone-300 font-bold"
+                className="w-full text-xs px-2.5 py-1.5 rounded border border-stone-300 font-bold focus-visible:ring-2 focus-visible:ring-emerald-500"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-semibold text-stone-600 mb-1">
+              <label htmlFor="price-input" className="block text-[11px] font-semibold text-stone-600 mb-1">
                 Price (₹/Qtl)
               </label>
               <input
+                id="price-input"
                 type="number"
                 step="50"
                 value={expectedSellingPrice}
                 onChange={(e) => setExpectedSellingPrice(parseFloat(e.target.value) || 1)}
-                className="w-full text-xs px-2.5 py-1.5 rounded border border-stone-300 font-bold text-emerald-800"
+                className="w-full text-xs px-2.5 py-1.5 rounded border border-stone-300 font-bold text-emerald-800 focus-visible:ring-2 focus-visible:ring-emerald-500"
               />
             </div>
           </div>
@@ -249,29 +253,35 @@ export const ProfitCalculator: React.FC<ProfitCalculatorProps> = ({ currentUser 
               <button
                 type="button"
                 onClick={handleAddExpense}
-                className="text-xs text-emerald-700 font-semibold hover:underline flex items-center gap-1"
+                className="text-xs text-emerald-700 font-semibold hover:underline flex items-center gap-1 focus-visible:outline-2 focus-visible:outline-emerald-600 rounded px-1"
+                aria-label="Add new expense line item"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>Add Expense Line</span>
               </button>
             </div>
 
-            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-              {expenses.map((item) => (
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1" role="list">
+              {expenses.map((item, index) => (
                 <div
                   key={item.id}
+                  role="listitem"
                   className="flex items-center gap-2 p-2 rounded-lg border border-stone-200 bg-stone-50/50 text-xs"
                 >
+                  <label htmlFor={`exp-name-${item.id}`} className="sr-only">Expense description {index + 1}</label>
                   <input
+                    id={`exp-name-${item.id}`}
                     type="text"
                     value={item.name}
                     onChange={(e) => handleUpdateExpense(item.id, 'name', e.target.value)}
-                    className="flex-1 px-2 py-1 bg-white border border-stone-300 rounded text-xs"
+                    className="flex-1 px-2 py-1 bg-white border border-stone-300 rounded text-xs focus-visible:ring-1 focus-visible:ring-emerald-500"
                   />
+                  <label htmlFor={`exp-cat-${item.id}`} className="sr-only">Expense category {index + 1}</label>
                   <select
+                    id={`exp-cat-${item.id}`}
                     value={item.category}
                     onChange={(e) => handleUpdateExpense(item.id, 'category', e.target.value as any)}
-                    className="w-28 px-1 py-1 bg-white border border-stone-300 rounded text-[11px]"
+                    className="w-28 px-1 py-1 bg-white border border-stone-300 rounded text-[11px] focus-visible:ring-1 focus-visible:ring-emerald-500"
                   >
                     <option value="Seeds">Seeds</option>
                     <option value="Fertilizers & Nutrients">Nutrients</option>
@@ -282,27 +292,30 @@ export const ProfitCalculator: React.FC<ProfitCalculatorProps> = ({ currentUser 
                     <option value="Harvesting & Transport">Harvest/Transit</option>
                   </select>
                   <div className="relative w-24">
-                    <span className="absolute left-2 top-1 text-[11px] text-stone-400">₹</span>
+                    <span className="absolute left-2 top-1 text-[11px] text-stone-400" aria-hidden="true">₹</span>
+                    <label htmlFor={`exp-amt-${item.id}`} className="sr-only">Expense amount {index + 1}</label>
                     <input
+                      id={`exp-amt-${item.id}`}
                       type="number"
                       value={item.amount}
                       onChange={(e) => handleUpdateExpense(item.id, 'amount', parseFloat(e.target.value) || 0)}
-                      className="w-full pl-5 pr-2 py-1 bg-white border border-stone-300 rounded text-xs font-semibold text-right"
+                      className="w-full pl-5 pr-2 py-1 bg-white border border-stone-300 rounded text-xs font-semibold text-right focus-visible:ring-1 focus-visible:ring-emerald-500"
                     />
                   </div>
                   <button
                     type="button"
                     onClick={() => handleRemoveExpense(item.id)}
-                    className="p-1 text-stone-400 hover:text-rose-600 rounded"
+                    className="p-1 text-stone-400 hover:text-rose-600 rounded focus-visible:outline-2 focus-visible:outline-rose-500"
                     title="Remove item"
+                    aria-label={`Remove expense item ${item.name}`}
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                 </div>
               ))}
             </div>
 
-            <div className="pt-2 flex items-center justify-between border-t border-stone-200 text-xs font-bold text-stone-900">
+            <div className="pt-2 flex items-center justify-between border-t border-stone-200 text-xs font-bold text-stone-900" aria-live="polite">
               <span>Total Estimated Expenses:</span>
               <span className="text-base text-stone-900">₹{totalEstimatedCost.toLocaleString()}</span>
             </div>
@@ -311,16 +324,16 @@ export const ProfitCalculator: React.FC<ProfitCalculatorProps> = ({ currentUser 
           <div className="pt-2 flex items-center gap-3">
             <button
               onClick={handleSaveCalculation}
-              className="flex-1 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-2 transition"
+              className="flex-1 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-2 transition focus-visible:outline-2 focus-visible:outline-emerald-600"
             >
-              <Save className="w-4 h-4" />
+              <Save className="w-4 h-4" aria-hidden="true" />
               <span>Save Financial Calculation</span>
             </button>
           </div>
 
           {justSaved && (
-            <div className="text-center text-xs text-emerald-700 font-medium flex items-center justify-center gap-1">
-              <Check className="w-4 h-4" />
+            <div className="text-center text-xs text-emerald-700 font-medium flex items-center justify-center gap-1" role="status" aria-live="polite">
+              <Check className="w-4 h-4" aria-hidden="true" />
               <span>Saved to farm financial records!</span>
             </div>
           )}
@@ -329,7 +342,7 @@ export const ProfitCalculator: React.FC<ProfitCalculatorProps> = ({ currentUser 
         {/* Right: Revenue, Net Return & Sensitivity (6 Cols) */}
         <div className="lg:col-span-6 space-y-6">
           {/* Key Metric Highlights */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4" aria-live="polite">
             <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs">
               <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider block">
                 Gross Revenue ({totalExpectedYieldQuintals} Qtl)
@@ -337,7 +350,7 @@ export const ProfitCalculator: React.FC<ProfitCalculatorProps> = ({ currentUser 
               <div className="text-2xl font-black text-stone-900 mt-1">
                 ₹{estimatedGrossRevenue.toLocaleString()}
               </div>
-              <span className="text-[11px] text-stone-400 mt-0.5 block">
+              <span className="text-[11px] text-stone-500 mt-0.5 block">
                 @ ₹{expectedSellingPrice.toLocaleString()} / Quintal
               </span>
             </div>
@@ -377,7 +390,7 @@ export const ProfitCalculator: React.FC<ProfitCalculatorProps> = ({ currentUser 
                   {breakEvenYieldQuintals.toFixed(2)} Quintals
                 </span>
                 <span className="text-[10px] text-stone-500 block mt-0.5">
-                  ({(breakEvenYieldQuintals / cultivatedAreaAcres).toFixed(2)} Qtl / acre minimum)
+                  ({(breakEvenYieldQuintals / (cultivatedAreaAcres || 1)).toFixed(2)} Qtl / acre minimum)
                 </span>
               </div>
             </div>
@@ -389,13 +402,13 @@ export const ProfitCalculator: React.FC<ProfitCalculatorProps> = ({ currentUser 
               Market & Weather Sensitivity Analysis
             </h3>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-stone-50 text-stone-600 font-semibold border-b border-stone-200">
+              <table className="w-full text-xs text-left" aria-label="Sensitivity analysis scenarios">
+                <thead className="bg-stone-50 text-stone-700 font-semibold border-b border-stone-200">
                   <tr>
-                    <th className="p-2">Scenario</th>
-                    <th className="p-2 text-right">Yield</th>
-                    <th className="p-2 text-right">Market Price</th>
-                    <th className="p-2 text-right">Est. Net Profit</th>
+                    <th scope="col" className="p-2">Scenario</th>
+                    <th scope="col" className="p-2 text-right">Yield</th>
+                    <th scope="col" className="p-2 text-right">Market Price</th>
+                    <th scope="col" className="p-2 text-right">Est. Net Profit</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">

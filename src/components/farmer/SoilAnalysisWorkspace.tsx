@@ -138,12 +138,12 @@ export const SoilAnalysisWorkspace: React.FC<SoilAnalysisWorkspaceProps> = ({ cu
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8" role="region" aria-label="Soil Analysis Workspace">
       {/* Title & Agronomic Disclaimer Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-stone-200 pb-5">
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true" />
             <span>ICAR & Soil Health Card Evidence Engine</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-stone-900">
@@ -158,18 +158,19 @@ export const SoilAnalysisWorkspace: React.FC<SoilAnalysisWorkspaceProps> = ({ cu
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="px-3.5 py-2 rounded-lg bg-white border border-stone-300 text-stone-700 hover:bg-stone-50 text-xs font-medium flex items-center gap-1.5 shadow-2xs"
+              className="px-3.5 py-2 rounded-lg bg-white border border-stone-300 text-stone-700 hover:bg-stone-50 text-xs font-medium flex items-center gap-1.5 shadow-2xs focus-visible:outline-2 focus-visible:outline-emerald-600"
+              aria-label="Print or export soil analysis dossier"
             >
-              <Printer className="w-3.5 h-3.5 text-stone-500" />
+              <Printer className="w-3.5 h-3.5 text-stone-500" aria-hidden="true" />
               <span>Print / Export Dossier</span>
             </button>
           </div>
         )}
       </div>
 
-      {/* Lab Accuracy Notice: Grounding Rule */}
-      <div className="p-4 bg-amber-50/80 rounded-xl border border-amber-200 flex items-start gap-3">
-        <Info className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+      {/* Lab Accuracy Notice */}
+      <div className="p-4 bg-amber-50/80 rounded-xl border border-amber-200 flex items-start gap-3" role="note">
+        <Info className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" aria-hidden="true" />
         <div className="text-xs text-amber-900 leading-relaxed">
           <strong>Laboratory Test Requirement Notice: </strong>
           Soil photographs cannot determine chemical N-P-K nutrient or pH values. Please enter readings from your government Soil Health Card or recognized soil testing laboratory, or upload the certified test document below.
@@ -188,10 +189,11 @@ export const SoilAnalysisWorkspace: React.FC<SoilAnalysisWorkspaceProps> = ({ cu
             {/* Farm Details */}
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                <label htmlFor="farm-plot-input" className="block text-xs font-semibold text-stone-700 mb-1">
                   Farm / Plot Identifier
                 </label>
                 <input
+                  id="farm-plot-input"
                   type="text"
                   value={farmName}
                   onChange={(e) => setFarmName(e.target.value)}
@@ -203,10 +205,11 @@ export const SoilAnalysisWorkspace: React.FC<SoilAnalysisWorkspaceProps> = ({ cu
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">
+                  <label htmlFor="soil-type-select" className="block text-xs font-semibold text-stone-700 mb-1">
                     Soil Texture / Type
                   </label>
                   <select
+                    id="soil-type-select"
                     value={soilType}
                     onChange={(e) => setSoilType(e.target.value as any)}
                     className="w-full text-xs px-3 py-2 rounded-lg border border-stone-300 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
@@ -221,10 +224,11 @@ export const SoilAnalysisWorkspace: React.FC<SoilAnalysisWorkspaceProps> = ({ cu
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">
+                  <label htmlFor="irrigation-type-select" className="block text-xs font-semibold text-stone-700 mb-1">
                     Irrigation System
                   </label>
                   <select
+                    id="irrigation-type-select"
                     value={irrigationType}
                     onChange={(e) => setIrrigationType(e.target.value as any)}
                     className="w-full text-xs px-3 py-2 rounded-lg border border-stone-300 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
@@ -239,10 +243,11 @@ export const SoilAnalysisWorkspace: React.FC<SoilAnalysisWorkspaceProps> = ({ cu
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                <label htmlFor="current-crop-input" className="block text-xs font-semibold text-stone-700 mb-1">
                   Current or Intended Crop
                 </label>
                 <input
+                  id="current-crop-input"
                   type="text"
                   value={currentCrop}
                   onChange={(e) => setCurrentCrop(e.target.value)}
@@ -254,17 +259,18 @@ export const SoilAnalysisWorkspace: React.FC<SoilAnalysisWorkspaceProps> = ({ cu
 
             {/* Upload Document Box */}
             <div className="p-3.5 bg-stone-50 rounded-xl border border-dashed border-stone-300 text-center">
-              <Upload className="w-5 h-5 text-stone-400 mx-auto mb-1.5" />
-              <label className="text-xs font-medium text-emerald-700 hover:text-emerald-800 cursor-pointer">
+              <Upload className="w-5 h-5 text-stone-400 mx-auto mb-1.5" aria-hidden="true" />
+              <label htmlFor="soil-card-upload" className="text-xs font-medium text-emerald-700 hover:text-emerald-800 cursor-pointer block focus-within:underline">
                 <span>Upload Soil Health Card (PDF/Image)</span>
                 <input
+                  id="soil-card-upload"
                   type="file"
                   accept=".pdf,.png,.jpg,.jpeg"
                   onChange={handleFileUpload}
-                  className="hidden"
+                  className="sr-only"
                 />
               </label>
-              <p className="text-[11px] text-stone-400 mt-1">
+              <p className="text-[11px] text-stone-500 mt-1">
                 {uploadedFileName ? `Attached: ${uploadedFileName}` : 'Extracts NPK & pH data automatically into fields below'}
               </p>
             </div>
@@ -275,101 +281,108 @@ export const SoilAnalysisWorkspace: React.FC<SoilAnalysisWorkspaceProps> = ({ cu
                 <span className="text-xs font-bold text-stone-900 uppercase tracking-wider">
                   Measured Lab Values
                 </span>
-                <span className="text-[10px] text-stone-400">Leave blank if unmeasured</span>
+                <span className="text-[10px] text-stone-500">Leave blank if unmeasured</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-medium text-stone-600 mb-0.5">
+                  <label htmlFor="param-ph" className="block text-[11px] font-medium text-stone-600 mb-0.5">
                     Soil pH (Acidity/Alkalinity)
                   </label>
                   <input
+                    id="param-ph"
                     type="number"
                     step="0.1"
                     value={ph}
                     onChange={(e) => setPh(e.target.value)}
-                    className="w-full text-xs px-3 py-1.5 rounded border border-stone-300"
+                    className="w-full text-xs px-3 py-1.5 rounded border border-stone-300 focus-visible:ring-1 focus-visible:ring-emerald-500"
                     placeholder="e.g. 6.8"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-stone-600 mb-0.5">
+                  <label htmlFor="param-n" className="block text-[11px] font-medium text-stone-600 mb-0.5">
                     Nitrogen - N (kg/ha)
                   </label>
                   <input
+                    id="param-n"
                     type="number"
                     value={nitrogen}
                     onChange={(e) => setNitrogen(e.target.value)}
-                    className="w-full text-xs px-3 py-1.5 rounded border border-stone-300"
+                    className="w-full text-xs px-3 py-1.5 rounded border border-stone-300 focus-visible:ring-1 focus-visible:ring-emerald-500"
                     placeholder="e.g. 195 (Low <250)"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-stone-600 mb-0.5">
+                  <label htmlFor="param-p" className="block text-[11px] font-medium text-stone-600 mb-0.5">
                     Phosphorus - P (kg/ha)
                   </label>
                   <input
+                    id="param-p"
                     type="number"
                     value={phosphorus}
                     onChange={(e) => setPhosphorus(e.target.value)}
-                    className="w-full text-xs px-3 py-1.5 rounded border border-stone-300"
+                    className="w-full text-xs px-3 py-1.5 rounded border border-stone-300 focus-visible:ring-1 focus-visible:ring-emerald-500"
                     placeholder="e.g. 22 (Med 20-50)"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-stone-600 mb-0.5">
+                  <label htmlFor="param-k" className="block text-[11px] font-medium text-stone-600 mb-0.5">
                     Potassium - K (kg/ha)
                   </label>
                   <input
+                    id="param-k"
                     type="number"
                     value={potassium}
                     onChange={(e) => setPotassium(e.target.value)}
-                    className="w-full text-xs px-3 py-1.5 rounded border border-stone-300"
+                    className="w-full text-xs px-3 py-1.5 rounded border border-stone-300 focus-visible:ring-1 focus-visible:ring-emerald-500"
                     placeholder="e.g. 310 (High >280)"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-stone-600 mb-0.5">
+                  <label htmlFor="param-oc" className="block text-[11px] font-medium text-stone-600 mb-0.5">
                     Organic Carbon - OC (%)
                   </label>
                   <input
+                    id="param-oc"
                     type="number"
                     step="0.01"
                     value={organicCarbon}
                     onChange={(e) => setOrganicCarbon(e.target.value)}
-                    className="w-full text-xs px-3 py-1.5 rounded border border-stone-300"
+                    className="w-full text-xs px-3 py-1.5 rounded border border-stone-300 focus-visible:ring-1 focus-visible:ring-emerald-500"
                     placeholder="e.g. 0.52"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-medium text-stone-600 mb-0.5">
+                  <label htmlFor="param-ec" className="block text-[11px] font-medium text-stone-600 mb-0.5">
                     EC - Salinity (dS/m)
                   </label>
                   <input
+                    id="param-ec"
                     type="number"
                     step="0.01"
                     value={ec}
                     onChange={(e) => setEc(e.target.value)}
-                    className="w-full text-xs px-3 py-1.5 rounded border border-stone-300"
+                    className="w-full text-xs px-3 py-1.5 rounded border border-stone-300 focus-visible:ring-1 focus-visible:ring-emerald-500"
                     placeholder="e.g. 0.45 (<1.0 is Normal)"
                   />
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-[11px] font-medium text-stone-600 mb-0.5">
+                  <label htmlFor="param-zn" className="block text-[11px] font-medium text-stone-600 mb-0.5">
                     Zinc - Zn (ppm) (Optional Micronutrient)
                   </label>
                   <input
+                    id="param-zn"
                     type="number"
                     step="0.01"
                     value={zinc}
                     onChange={(e) => setZinc(e.target.value)}
-                    className="w-full text-xs px-3 py-1.5 rounded border border-stone-300"
+                    className="w-full text-xs px-3 py-1.5 rounded border border-stone-300 focus-visible:ring-1 focus-visible:ring-emerald-500"
                     placeholder="e.g. 0.58 (<0.6 is Deficient)"
                   />
                 </div>
@@ -379,24 +392,24 @@ export const SoilAnalysisWorkspace: React.FC<SoilAnalysisWorkspaceProps> = ({ cu
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition disabled:opacity-60 shadow-xs"
+              className="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition disabled:opacity-60 shadow-xs focus-visible:outline-2 focus-visible:outline-emerald-600"
             >
               {loading ? (
                 <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <RefreshCw className="w-4 h-4 animate-spin" aria-hidden="true" />
                   <span>Synthesizing Soil Advisory...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4 text-emerald-200" />
+                  <Sparkles className="w-4 h-4 text-emerald-200" aria-hidden="true" />
                   <span>Generate Evidence-Based Soil Advisory</span>
                 </>
               )}
             </button>
 
             {saveSuccess && (
-              <div className="text-center text-xs text-emerald-700 font-medium flex items-center justify-center gap-1">
-                <Check className="w-4 h-4" />
+              <div className="text-center text-xs text-emerald-700 font-medium flex items-center justify-center gap-1" role="status" aria-live="polite">
+                <Check className="w-4 h-4" aria-hidden="true" />
                 <span>Report successfully saved to farm profile!</span>
               </div>
             )}
@@ -404,7 +417,7 @@ export const SoilAnalysisWorkspace: React.FC<SoilAnalysisWorkspaceProps> = ({ cu
         </div>
 
         {/* Right Panel: Advisory Output & Missing Data Audit (7 Cols) */}
-        <div className="lg:col-span-7 space-y-6">
+        <div className="lg:col-span-7 space-y-6" aria-live="polite">
           {report ? (
             <div className="bg-white rounded-2xl border border-stone-200 p-6 sm:p-7 shadow-xs space-y-6">
               {/* Report Header */}
@@ -428,9 +441,9 @@ export const SoilAnalysisWorkspace: React.FC<SoilAnalysisWorkspaceProps> = ({ cu
 
               {/* Measured vs Benchmark Matrix */}
               <div>
-                <h4 className="text-xs font-bold text-stone-800 uppercase tracking-wider mb-3">
+                <h3 className="text-xs font-bold text-stone-800 uppercase tracking-wider mb-3">
                   Nutrient Status vs Agronomic Benchmarks
-                </h4>
+                </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="p-3 rounded-xl border border-stone-200 bg-stone-50/50">
                     <span className="text-[11px] text-stone-500">Reaction (pH)</span>
@@ -477,7 +490,7 @@ export const SoilAnalysisWorkspace: React.FC<SoilAnalysisWorkspaceProps> = ({ cu
               {/* Transparent Explanation in Simple Language */}
               <div className="p-4 bg-emerald-50/70 rounded-xl border border-emerald-200 space-y-1.5">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-900">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-700" aria-hidden="true" />
                   <span>Agronomist Explanation & Cost-Saving Insight</span>
                 </div>
                 <p className="text-xs text-stone-700 leading-relaxed">
@@ -487,12 +500,12 @@ export const SoilAnalysisWorkspace: React.FC<SoilAnalysisWorkspaceProps> = ({ cu
 
               {/* Actionable Fertilizer & Nutrient Dosing */}
               <div className="space-y-3">
-                <h4 className="text-xs font-bold text-stone-800 uppercase tracking-wider">
+                <h3 className="text-xs font-bold text-stone-800 uppercase tracking-wider">
                   Precise Nutrient Management
-                </h4>
-                <div className="space-y-2">
+                </h3>
+                <div className="space-y-2" role="list">
                   {report.recommendations.fertilizerDose.map((step, idx) => (
-                    <div key={idx} className="flex items-start gap-2.5 text-xs text-stone-700 bg-stone-50 p-2.5 rounded-lg border border-stone-200">
+                    <div key={idx} role="listitem" className="flex items-start gap-2.5 text-xs text-stone-700 bg-stone-50 p-2.5 rounded-lg border border-stone-200">
                       <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-[11px]">
                         {idx + 1}
                       </span>
@@ -504,13 +517,13 @@ export const SoilAnalysisWorkspace: React.FC<SoilAnalysisWorkspaceProps> = ({ cu
 
               {/* Organic Amendments & Soil Health Restoration */}
               <div className="space-y-3">
-                <h4 className="text-xs font-bold text-stone-800 uppercase tracking-wider">
+                <h3 className="text-xs font-bold text-stone-800 uppercase tracking-wider">
                   Organic Carbon Building & Bio-Amendments
-                </h4>
-                <div className="space-y-2">
+                </h3>
+                <div className="space-y-2" role="list">
                   {report.recommendations.organicAmendments.map((item, idx) => (
-                    <div key={idx} className="flex items-start gap-2 text-xs text-stone-700">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <div key={idx} role="listitem" className="flex items-start gap-2 text-xs text-stone-700">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" aria-hidden="true" />
                       <span>{item}</span>
                     </div>
                   ))}
@@ -519,7 +532,7 @@ export const SoilAnalysisWorkspace: React.FC<SoilAnalysisWorkspaceProps> = ({ cu
 
               {/* Irrigation Advisory */}
               <div className="p-3 bg-sky-50 rounded-lg border border-sky-200 flex items-start gap-2.5 text-xs text-sky-900">
-                <Droplet className="w-4 h-4 text-sky-700 shrink-0 mt-0.5" />
+                <Droplet className="w-4 h-4 text-sky-700 shrink-0 mt-0.5" aria-hidden="true" />
                 <div>
                   <span className="font-bold">Water Management Guidance: </span>
                   {report.recommendations.irrigationAdvice}
@@ -529,7 +542,7 @@ export const SoilAnalysisWorkspace: React.FC<SoilAnalysisWorkspaceProps> = ({ cu
               {/* Unmeasured / Missing Values Audit */}
               <div className="p-3 bg-stone-100 rounded-lg border border-stone-200 text-xs text-stone-600 space-y-1">
                 <div className="font-semibold text-stone-800 flex items-center gap-1.5">
-                  <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-600" aria-hidden="true" />
                   <span>Unmeasured Parameters in Current Test</span>
                 </div>
                 <p className="text-[11px]">
@@ -542,7 +555,7 @@ export const SoilAnalysisWorkspace: React.FC<SoilAnalysisWorkspaceProps> = ({ cu
             </div>
           ) : (
             <div className="bg-white rounded-2xl border border-stone-200 p-12 text-center space-y-4">
-              <FileText className="w-12 h-12 text-stone-300 mx-auto" />
+              <FileText className="w-12 h-12 text-stone-300 mx-auto" aria-hidden="true" />
               <h3 className="text-base font-bold text-stone-800">No Soil Test Analyzed Yet</h3>
               <p className="text-xs text-stone-500 max-w-sm mx-auto">
                 Fill in your laboratory soil health metrics on the left or upload a card document to generate instant scientific advisories.

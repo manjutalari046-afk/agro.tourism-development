@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Compass,
   Search,
@@ -6,17 +6,11 @@ import {
   MapPin,
   Calendar,
   Users,
-  DollarSign,
   ShieldCheck,
-  Sparkles,
-  Info,
   CheckCircle2,
-  XCircle,
   ArrowRight,
-  Heart,
-  Share2,
 } from 'lucide-react';
-import { FarmStayListing, UserProfile, TouristEnquiry } from '../../types';
+import { FarmStayListing, UserProfile } from '../../types';
 import { farmStore } from '../../services/store';
 
 interface TouristSearchProps {
@@ -37,89 +31,95 @@ export const TouristSearch: React.FC<TouristSearchProps> = ({
   const [maxBudget, setMaxBudget] = useState<number>(3500);
   const [selectedActivity, setSelectedActivity] = useState<string>('All');
   const [selectedAccommodation, setSelectedAccommodation] = useState<string>('All');
-  const [familyFriendlyOnly, setFamilyFriendlyOnly] = useState(false);
   const [includePendingAudit, setIncludePendingAudit] = useState(false);
 
-  // STAGE 1: Mandatory Eligibility Filtering
-  const stageOneFiltered = allStays.filter((stay) => {
-    if (!includePendingAudit) {
-      // Standard recommended list ONLY admits properties that passed mandatory verification
-      return stay.readinessState === 'Eligible for recommendation';
-    }
-    return true;
-  });
-
-  // STAGE 2: Preference-Based Ranking & Scoring
-  const rankedStays = stageOneFiltered.map((stay) => {
-    let score = 100;
-    const reasons: string[] = [];
-
-    // Destination match
-    if (destination) {
-      const match =
-        stay.location.toLowerCase().includes(destination.toLowerCase()) ||
-        stay.district.toLowerCase().includes(destination.toLowerCase()) ||
-        stay.state.toLowerCase().includes(destination.toLowerCase());
-      if (match) {
-        score += 20;
-        reasons.push(`Located in your requested region of ${stay.district}`);
-      } else {
-        score -= 30;
+  // STAGE 1: Mandatory Eligibility Filtering (Memoized for efficiency)
+  const stageOneFiltered = useMemo(() => {
+    return allStays.filter((stay) => {
+      if (!includePendingAudit) {
+        // Standard recommended list ONLY admits properties that passed mandatory verification
+        return stay.readinessState === 'Eligible for recommendation';
       }
-    }
+      return true;
+    });
+  }, [allStays, includePendingAudit]);
 
-    // Budget match
-    if (stay.pricePerNight <= maxBudget) {
-      score += 15;
-      reasons.push(`Within your budget of ₹${maxBudget}/night (at ₹${stay.pricePerNight}/night)`);
-    } else {
-      score -= (stay.pricePerNight - maxBudget) / 100;
-    }
+  // STAGE 2: Preference-Based Ranking & Scoring (Memoized for efficiency)
+  const rankedStays = useMemo(() => {
+    return stageOneFiltered.map((stay) => {
+      let score = 100;
+      const reasons: string[] = [];
 
-    // Capacity match
-    if (stay.maxGuestCapacity >= guestCount) {
-      reasons.push(`Accommodates your group of ${guestCount} guests (capacity up to ${stay.maxGuestCapacity})`);
-    } else {
-      score -= 40;
-    }
-
-    // Activity preference
-    if (selectedActivity !== 'All') {
-      const hasAct = stay.activities.some((a) => a.category.includes(selectedActivity) || a.title.includes(selectedActivity));
-      if (hasAct) {
-        score += 25;
-        reasons.push(`Offers requested hands-on activity: ${selectedActivity}`);
-      } else {
-        score -= 15;
+      // Destination match
+      if (destination.trim()) {
+        const query = destination.toLowerCase().trim();
+        const match =
+          stay.location.toLowerCase().includes(query) ||
+          stay.district.toLowerCase().includes(query) ||
+          stay.state.toLowerCase().includes(query);
+        if (match) {
+          score += 20;
+          reasons.push(`Located in your requested region of ${stay.district}`);
+        } else {
+          score -= 30;
+        }
       }
-    }
 
-    // Accommodation style
-    if (selectedAccommodation !== 'All') {
-      if (stay.accommodationType === selectedAccommodation) {
+      // Budget match
+      if (stay.pricePerNight <= maxBudget) {
         score += 15;
-        reasons.push(`Matches preferred ${stay.accommodationType} lodging`);
+        reasons.push(`Within your budget of ₹${maxBudget}/night (at ₹${stay.pricePerNight}/night)`);
+      } else {
+        score -= (stay.pricePerNight - maxBudget) / 100;
       }
-    }
 
-    // Default safety verified reason
-    if (stay.readinessState === 'Eligible for recommendation') {
-      reasons.push('Verified laboratory BIS 10500 drinking water & certified sanitation');
-    }
+      // Capacity match
+      if (stay.maxGuestCapacity >= guestCount) {
+        reasons.push(`Accommodates your group of ${guestCount} guests (capacity up to ${stay.maxGuestCapacity})`);
+      } else {
+        score -= 40;
+      }
 
-    return {
-      stay,
-      score: Math.max(10, Math.min(100, Math.round(score))),
-      matchExplanation: reasons.length > 0 ? reasons.slice(0, 3).join('. ') + '.' : 'Meets foundational regional standards.',
-    };
-  }).sort((a, b) => b.score - a.score);
+      // Activity preference
+      if (selectedActivity !== 'All') {
+        const hasAct = stay.activities.some(
+          (a) => a.category.includes(selectedActivity) || a.title.includes(selectedActivity)
+        );
+        if (hasAct) {
+          score += 25;
+          reasons.push(`Offers requested hands-on activity: ${selectedActivity}`);
+        } else {
+          score -= 15;
+        }
+      }
+
+      // Accommodation style
+      if (selectedAccommodation !== 'All') {
+        if (stay.accommodationType === selectedAccommodation) {
+          score += 15;
+          reasons.push(`Matches preferred ${stay.accommodationType} lodging`);
+        }
+      }
+
+      // Default safety verified reason
+      if (stay.readinessState === 'Eligible for recommendation') {
+        reasons.push('Verified laboratory BIS 10500 drinking water & certified sanitation');
+      }
+
+      return {
+        stay,
+        score: Math.max(10, Math.min(100, Math.round(score))),
+        matchExplanation: reasons.length > 0 ? reasons.slice(0, 3).join('. ') + '.' : 'Meets foundational regional standards.',
+      };
+    }).sort((a, b) => b.score - a.score);
+  }, [stageOneFiltered, destination, maxBudget, guestCount, selectedActivity, selectedAccommodation]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8" role="region" aria-label="Tourist Farm Stay Search and Recommendations">
       {/* Title */}
       <div className="border-b border-stone-200 pb-5">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sky-100 text-sky-800 mb-2">
-          <Compass className="w-3.5 h-3.5 text-sky-600" />
+          <Compass className="w-3.5 h-3.5 text-sky-600" aria-hidden="true" />
           <span>Stage 1 Filtered & Stage 2 Ranked</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-stone-900">
@@ -131,8 +131,8 @@ export const TouristSearch: React.FC<TouristSearchProps> = ({
       </div>
 
       {/* Two-Stage Architecture Notice */}
-      <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-950 flex items-start gap-3">
-        <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+      <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-950 flex items-start gap-3" role="note">
+        <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" aria-hidden="true" />
         <div>
           <strong>Two-Stage Recommendation Protection: </strong>
           Properties failing essential drinking-water laboratory checks or emergency safety standards are automatically filtered out. Properties shown below are actively verified and ranked by your explicit budget, activity, and date preferences.
@@ -143,40 +143,49 @@ export const TouristSearch: React.FC<TouristSearchProps> = ({
       <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
           <div>
-            <label className="block font-semibold text-stone-700 mb-1">Destination / Region</label>
+            <label htmlFor="search-destination" className="block font-semibold text-stone-700 mb-1">
+              Destination / Region
+            </label>
             <div className="relative">
-              <MapPin className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-2.5" />
+              <MapPin className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-2.5" aria-hidden="true" />
               <input
+                id="search-destination"
                 type="text"
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
                 placeholder="e.g. Yadadri, East Godavari, Telangana"
-                className="w-full pl-8 pr-3 py-2 rounded-lg border border-stone-300"
+                className="w-full pl-8 pr-3 py-2 rounded-lg border border-stone-300 focus-visible:ring-2 focus-visible:ring-emerald-500"
               />
             </div>
           </div>
 
           <div>
-            <label className="block font-semibold text-stone-700 mb-1">Travel Date</label>
+            <label htmlFor="search-date" className="block font-semibold text-stone-700 mb-1">
+              Travel Date
+            </label>
             <div className="relative">
-              <Calendar className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-2.5" />
+              <Calendar className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-2.5" aria-hidden="true" />
               <input
+                id="search-date"
                 type="date"
                 value={travelDate}
                 onChange={(e) => setTravelDate(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 rounded-lg border border-stone-300"
+                className="w-full pl-8 pr-3 py-2 rounded-lg border border-stone-300 focus-visible:ring-2 focus-visible:ring-emerald-500"
               />
             </div>
           </div>
 
           <div>
-            <label className="block font-semibold text-stone-700 mb-1">Guests</label>
+            <label htmlFor="search-guests" className="block font-semibold text-stone-700 mb-1">
+              Guests
+            </label>
             <div className="relative">
-              <Users className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-2.5" />
+              <Users className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-2.5" aria-hidden="true" />
               <select
+                id="search-guests"
                 value={guestCount}
                 onChange={(e) => setGuestCount(parseInt(e.target.value))}
-                className="w-full pl-8 pr-3 py-2 rounded-lg border border-stone-300 bg-white"
+                className="w-full pl-8 pr-3 py-2 rounded-lg border border-stone-300 bg-white focus-visible:ring-2 focus-visible:ring-emerald-500"
               >
                 <option value={1}>1 Guest (Solo Traveler)</option>
                 <option value={2}>2 Guests (Couple)</option>
@@ -188,10 +197,11 @@ export const TouristSearch: React.FC<TouristSearchProps> = ({
 
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="font-semibold text-stone-700">Max Budget / Night</label>
+              <label htmlFor="budget-slider" className="font-semibold text-stone-700">Max Budget / Night</label>
               <span className="font-bold text-stone-900">₹{maxBudget}</span>
             </div>
             <input
+              id="budget-slider"
               type="range"
               min="1200"
               max="5000"
@@ -199,6 +209,10 @@ export const TouristSearch: React.FC<TouristSearchProps> = ({
               value={maxBudget}
               onChange={(e) => setMaxBudget(parseInt(e.target.value))}
               className="w-full accent-emerald-700"
+              aria-valuemin={1200}
+              aria-valuemax={5000}
+              aria-valuenow={maxBudget}
+              aria-label="Maximum budget per night in Rupees"
             />
           </div>
         </div>
@@ -207,11 +221,12 @@ export const TouristSearch: React.FC<TouristSearchProps> = ({
         <div className="pt-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex flex-wrap items-center gap-3">
             <div>
-              <span className="text-stone-500 mr-1.5">Activity:</span>
+              <label htmlFor="select-activity" className="text-stone-600 mr-1.5 font-medium">Activity:</label>
               <select
+                id="select-activity"
                 value={selectedActivity}
                 onChange={(e) => setSelectedActivity(e.target.value)}
-                className="px-2.5 py-1 rounded-lg border border-stone-300 bg-white"
+                className="px-2.5 py-1 rounded-lg border border-stone-300 bg-white focus-visible:ring-1 focus-visible:ring-emerald-500"
               >
                 <option value="All">All Activities</option>
                 <option value="Harvesting">Harvesting & Fruit Picking</option>
@@ -222,11 +237,12 @@ export const TouristSearch: React.FC<TouristSearchProps> = ({
             </div>
 
             <div>
-              <span className="text-stone-500 mr-1.5">Lodging:</span>
+              <label htmlFor="select-lodging" className="text-stone-600 mr-1.5 font-medium">Lodging:</label>
               <select
+                id="select-lodging"
                 value={selectedAccommodation}
                 onChange={(e) => setSelectedAccommodation(e.target.value)}
-                className="px-2.5 py-1 rounded-lg border border-stone-300 bg-white"
+                className="px-2.5 py-1 rounded-lg border border-stone-300 bg-white focus-visible:ring-1 focus-visible:ring-emerald-500"
               >
                 <option value="All">Any Lodging Style</option>
                 <option value="Eco Cottage">Eco Cottage</option>
@@ -242,7 +258,7 @@ export const TouristSearch: React.FC<TouristSearchProps> = ({
               type="checkbox"
               checked={includePendingAudit}
               onChange={(e) => setIncludePendingAudit(e.target.checked)}
-              className="rounded text-sky-700"
+              className="rounded text-sky-700 focus-visible:ring-1 focus-visible:ring-sky-500"
             />
             <span>Show unverified / pending audit properties (for testing)</span>
           </label>
@@ -251,7 +267,7 @@ export const TouristSearch: React.FC<TouristSearchProps> = ({
 
       {/* Results List */}
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between" aria-live="polite">
           <h2 className="text-sm font-bold text-stone-900 uppercase tracking-wider">
             Verified Agritourism Stays ({rankedStays.length} matching your criteria)
           </h2>
@@ -261,13 +277,14 @@ export const TouristSearch: React.FC<TouristSearchProps> = ({
         </div>
 
         {rankedStays.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6" role="list">
             {rankedStays.map(({ stay, score, matchExplanation }) => {
               const isEligible = stay.readinessState === 'Eligible for recommendation';
 
               return (
                 <div
                   key={stay.id}
+                  role="listitem"
                   className={`bg-white rounded-2xl border overflow-hidden shadow-2xs hover:shadow-md transition flex flex-col justify-between ${
                     isEligible ? 'border-stone-200' : 'border-amber-300 bg-amber-50/10'
                   }`}
@@ -277,7 +294,7 @@ export const TouristSearch: React.FC<TouristSearchProps> = ({
                     <div className="relative h-52 w-full">
                       <img
                         src={stay.photos[0] || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80'}
-                        alt={stay.farmName}
+                        alt={`Photo of ${stay.farmName}`}
                         className="w-full h-full object-cover"
                       />
                       <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
@@ -288,7 +305,7 @@ export const TouristSearch: React.FC<TouristSearchProps> = ({
                               : 'bg-amber-600 text-white'
                           }`}
                         >
-                          <ShieldCheck className="w-3.5 h-3.5" />
+                          <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
                           {stay.readinessState}
                         </span>
                       </div>
@@ -302,21 +319,21 @@ export const TouristSearch: React.FC<TouristSearchProps> = ({
                     <div className="p-5 space-y-3">
                       <div>
                         <div className="flex items-center gap-1 text-xs text-stone-500 mb-1">
-                          <MapPin className="w-3.5 h-3.5 text-stone-400" />
+                          <MapPin className="w-3.5 h-3.5 text-stone-400" aria-hidden="true" />
                           <span>{stay.location}, {stay.district}</span>
                         </div>
                         <h3 className="font-bold text-stone-900 text-lg leading-tight">{stay.farmName}</h3>
                         <p className="text-xs text-stone-600 line-clamp-2 mt-1.5 leading-relaxed">{stay.tagline}</p>
                       </div>
 
-                      {/* Transparent Match Explanation (Master Prompt Rule) */}
+                      {/* Transparent Match Explanation */}
                       <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 text-xs text-stone-700 leading-relaxed">
                         <strong className="text-stone-900">Why Recommended: </strong>
                         {matchExplanation}
                       </div>
 
                       {/* Activities Preview */}
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap gap-1.5" aria-label="Available farm activities">
                         {stay.activities.slice(0, 3).map((act) => (
                           <span
                             key={act.id}
@@ -347,10 +364,11 @@ export const TouristSearch: React.FC<TouristSearchProps> = ({
 
                     <button
                       onClick={() => onSelectFarmStay(stay.id)}
-                      className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 transition"
+                      className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 transition focus-visible:outline-2 focus-visible:outline-emerald-600"
+                      aria-label={`View full details and enquiry options for ${stay.farmName}`}
                     >
                       <span>View Details & Enquire</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -359,7 +377,7 @@ export const TouristSearch: React.FC<TouristSearchProps> = ({
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-stone-200 p-12 text-center space-y-3">
-            <Compass className="w-12 h-12 text-stone-300 mx-auto" />
+            <Compass className="w-12 h-12 text-stone-300 mx-auto" aria-hidden="true" />
             <h3 className="text-base font-bold text-stone-800">No Eligible Farm-Stays Found</h3>
             <p className="text-xs text-stone-500 max-w-sm mx-auto">
               Try expanding your budget slider or searching a different district. Remember that properties must pass mandatory drinking water and sanitation audits to appear here.

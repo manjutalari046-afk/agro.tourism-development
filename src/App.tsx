@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { UserProfile, UserRole, Language } from './types';
 import { farmStore } from './services/store';
 import { Navbar } from './components/common/Navbar';
@@ -24,12 +24,14 @@ import { InfrastructureGapReporter } from './components/community/Infrastructure
 import { CommunityDirectory } from './components/community/CommunityDirectory';
 import { CommunityImpactDashboard } from './components/community/CommunityImpactDashboard';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import { TestRunnerModal } from './components/common/TestRunnerModal';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserProfile>(() => farmStore.getCurrentUser());
   const [activeTab, setActiveTab] = useState<string>('landing');
   const [language, setLanguage] = useState<Language>('en');
   const [selectedFarmStayId, setSelectedFarmStayId] = useState<string>('fs_1');
+  const [isTestRunnerOpen, setIsTestRunnerOpen] = useState<boolean>(false);
 
   // Sync state when store changes
   useEffect(() => {
@@ -39,7 +41,7 @@ export default function App() {
     return unsubscribe;
   }, []);
 
-  const handleSwitchRole = (role: UserRole) => {
+  const handleSwitchRole = useCallback((role: UserRole) => {
     farmStore.switchRole(role);
     const updated = farmStore.getCurrentUser();
     setCurrentUser(updated);
@@ -54,24 +56,24 @@ export default function App() {
     } else if (role === 'administrator') {
       setActiveTab('admin_dashboard');
     }
-  };
+  }, []);
 
-  const handleToggleLanguage = () => {
+  const handleToggleLanguage = useCallback(() => {
     setLanguage((prev) => (prev === 'en' ? 'te' : 'en'));
-  };
+  }, []);
 
-  const handleResetData = () => {
+  const handleResetData = useCallback(() => {
     if (window.confirm('Reset all demo data to default clean state? This will clear local edits.')) {
       farmStore.resetToDefaults();
       setCurrentUser(farmStore.getCurrentUser());
       setActiveTab('landing');
     }
-  };
+  }, []);
 
-  const handleSelectFarmStay = (id: string) => {
+  const handleSelectFarmStay = useCallback((id: string) => {
     setSelectedFarmStayId(id);
     setActiveTab('farmstay_details');
-  };
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-50 text-stone-900 font-sans selection:bg-emerald-200">
@@ -84,9 +86,10 @@ export default function App() {
         onSwitchRole={handleSwitchRole}
         onToggleLanguage={handleToggleLanguage}
         onResetData={handleResetData}
+        onOpenTestRunner={() => setIsTestRunnerOpen(true)}
       />
 
-      <main className="flex-1">
+      <main className="flex-1" id="main-content" tabIndex={-1}>
         {activeTab === 'landing' && (
           <LandingPage
             language={language}
@@ -199,6 +202,12 @@ export default function App() {
       </main>
 
       <Footer language={language} onSelectTab={setActiveTab} />
+
+      {/* Acceptance Test Runner Modal */}
+      <TestRunnerModal
+        isOpen={isTestRunnerOpen}
+        onClose={() => setIsTestRunnerOpen(false)}
+      />
     </div>
   );
 }

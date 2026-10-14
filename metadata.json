@@ -2,6 +2,7 @@
   "name": "FarmBridge AI",
   "description": "Comprehensive AI-powered agriculture decision support, sustainable farm-stay readiness & verified agritourism discovery, and rural community development platform.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
-

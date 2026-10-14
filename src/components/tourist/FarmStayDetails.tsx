@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   MapPin,
   Calendar,
@@ -52,11 +52,22 @@ export const FarmStayDetails: React.FC<FarmStayDetailsProps> = ({
 
   const [enquirySubmitted, setEnquirySubmitted] = useState(false);
 
+  // Close modal on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showEnquiryModal) {
+        setShowEnquiryModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showEnquiryModal]);
+
   if (!stay) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16 text-center space-y-4">
         <p className="text-sm text-stone-600">Property details not found.</p>
-        <button onClick={onBack} className="text-xs font-semibold text-emerald-700 underline">
+        <button onClick={onBack} className="text-xs font-semibold text-emerald-700 underline focus-visible:outline-2 focus-visible:outline-emerald-600">
           Back to Search
         </button>
       </div>
@@ -114,17 +125,18 @@ export const FarmStayDetails: React.FC<FarmStayDetailsProps> = ({
       setEnquirySubmitted(false);
       setShowEnquiryModal(false);
       onSelectTab('tourist_enquiries');
-    }, 2000);
+    }, 1800);
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8" role="main">
       {/* Back button */}
       <button
         onClick={onBack}
-        className="text-xs font-semibold text-stone-600 hover:text-stone-900 flex items-center gap-1.5 transition"
+        className="text-xs font-semibold text-stone-600 hover:text-stone-900 flex items-center gap-1.5 transition focus-visible:outline-2 focus-visible:outline-emerald-600 p-1 rounded"
+        aria-label="Return to Farm Stays Search"
       >
-        <ArrowLeft className="w-4 h-4" />
+        <ArrowLeft className="w-4 h-4" aria-hidden="true" />
         <span>Back to Farm Stays Search</span>
       </button>
 
@@ -133,7 +145,7 @@ export const FarmStayDetails: React.FC<FarmStayDetailsProps> = ({
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5" />
+              <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
               {stay.readinessState}
             </span>
             <span className="text-xs text-stone-500 font-medium">
@@ -144,7 +156,7 @@ export const FarmStayDetails: React.FC<FarmStayDetailsProps> = ({
             {stay.farmName}
           </h1>
           <p className="text-xs sm:text-sm text-stone-600 mt-1 flex items-center gap-1">
-            <MapPin className="w-4 h-4 text-stone-400" />
+            <MapPin className="w-4 h-4 text-stone-400" aria-hidden="true" />
             <span>{stay.location}, {stay.district}, {stay.state}</span>
           </p>
         </div>
@@ -157,7 +169,8 @@ export const FarmStayDetails: React.FC<FarmStayDetailsProps> = ({
 
           <button
             onClick={() => setShowEnquiryModal(true)}
-            className="px-6 py-3 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs sm:text-sm shadow-md transition"
+            className="px-6 py-3 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs sm:text-sm shadow-md transition focus-visible:outline-2 focus-visible:outline-emerald-600"
+            aria-haspopup="dialog"
           >
             Send Host Enquiry
           </button>
@@ -169,18 +182,20 @@ export const FarmStayDetails: React.FC<FarmStayDetailsProps> = ({
         <div className="rounded-2xl overflow-hidden h-72 sm:h-96 w-full bg-stone-100">
           <img
             src={stay.photos[activePhoto] || stay.photos[0]}
-            alt={stay.farmName}
+            alt={`Featured photograph of ${stay.farmName}`}
             className="w-full h-full object-cover"
           />
         </div>
 
         {stay.photos.length > 1 && (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3" role="group" aria-label="Thumbnail gallery">
             {stay.photos.map((photo, idx) => (
               <button
                 key={idx}
                 onClick={() => setActivePhoto(idx)}
-                className={`w-20 h-16 rounded-xl overflow-hidden border-2 transition ${
+                aria-label={`View photo ${idx + 1}`}
+                aria-pressed={activePhoto === idx}
+                className={`w-20 h-16 rounded-xl overflow-hidden border-2 transition focus-visible:outline-2 focus-visible:outline-emerald-600 ${
                   activePhoto === idx ? 'border-emerald-600 scale-105' : 'border-transparent opacity-70 hover:opacity-100'
                 }`}
               >
@@ -219,10 +234,11 @@ export const FarmStayDetails: React.FC<FarmStayDetailsProps> = ({
               <span className="text-xs text-stone-500">Included or small activity fee</span>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3" role="list">
               {stay.activities.map((act) => (
                 <div
                   key={act.id}
+                  role="listitem"
                   className="p-4 rounded-xl border border-stone-200 bg-stone-50/50 space-y-2 text-xs"
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -230,7 +246,7 @@ export const FarmStayDetails: React.FC<FarmStayDetailsProps> = ({
                       <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
                         {act.category}
                       </span>
-                      <h4 className="font-bold text-stone-900 text-sm mt-1">{act.title}</h4>
+                      <h3 className="font-bold text-stone-900 text-sm mt-1">{act.title}</h3>
                     </div>
                     <div className="text-right">
                       <span className="font-bold text-stone-900">₹{act.pricePerPerson}</span>
@@ -261,7 +277,7 @@ export const FarmStayDetails: React.FC<FarmStayDetailsProps> = ({
                 <span className="font-bold text-stone-900 block">Potable Drinking Water</span>
                 <p className="text-stone-600">{stay.waterSourceDescription}</p>
                 <span className="text-emerald-700 font-semibold text-[11px] flex items-center gap-1 mt-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
                   {stay.drinkingWaterTested ? 'BIS 10500 Compliant Lab Test' : 'Pending Extension Audit'}
                 </span>
               </div>
@@ -302,31 +318,34 @@ export const FarmStayDetails: React.FC<FarmStayDetailsProps> = ({
             <div className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-stone-600 font-medium mb-1">Check-in</label>
+                  <label htmlFor="card-checkin" className="block text-stone-600 font-medium mb-1">Check-in</label>
                   <input
+                    id="card-checkin"
                     type="date"
                     value={checkInDate}
                     onChange={(e) => setCheckInDate(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded border border-stone-300 font-medium"
+                    className="w-full px-2.5 py-1.5 rounded border border-stone-300 font-medium focus-visible:ring-1 focus-visible:ring-emerald-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-stone-600 font-medium mb-1">Check-out</label>
+                  <label htmlFor="card-checkout" className="block text-stone-600 font-medium mb-1">Check-out</label>
                   <input
+                    id="card-checkout"
                     type="date"
                     value={checkOutDate}
                     onChange={(e) => setCheckOutDate(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded border border-stone-300 font-medium"
+                    className="w-full px-2.5 py-1.5 rounded border border-stone-300 font-medium focus-visible:ring-1 focus-visible:ring-emerald-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-stone-600 font-medium mb-1">Guests</label>
+                <label htmlFor="card-guests" className="block text-stone-600 font-medium mb-1">Guests</label>
                 <select
+                  id="card-guests"
                   value={guestsCount}
                   onChange={(e) => setGuestsCount(parseInt(e.target.value))}
-                  className="w-full px-2.5 py-1.5 rounded border border-stone-300 bg-white font-medium"
+                  className="w-full px-2.5 py-1.5 rounded border border-stone-300 bg-white font-medium focus-visible:ring-1 focus-visible:ring-emerald-500"
                 >
                   {[...Array(stay.maxGuestCapacity)].map((_, i) => (
                     <option key={i + 1} value={i + 1}>
@@ -336,7 +355,7 @@ export const FarmStayDetails: React.FC<FarmStayDetailsProps> = ({
                 </select>
               </div>
 
-              <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-1.5">
+              <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-1.5" aria-live="polite">
                 <div className="flex justify-between text-stone-600">
                   <span>₹{stay.pricePerNight} × {nights} {nights === 1 ? 'night' : 'nights'}</span>
                   <span>₹{totalCost.toLocaleString()}</span>
@@ -354,7 +373,7 @@ export const FarmStayDetails: React.FC<FarmStayDetailsProps> = ({
 
             <button
               onClick={() => setShowEnquiryModal(true)}
-              className="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs sm:text-sm transition shadow-md"
+              className="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs sm:text-sm transition shadow-md focus-visible:outline-2 focus-visible:outline-emerald-600"
             >
               Submit Stay Enquiry
             </button>
@@ -369,20 +388,26 @@ export const FarmStayDetails: React.FC<FarmStayDetailsProps> = ({
 
       {/* Interactive Enquiry Modal */}
       {showEnquiryModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-2xs">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="enquiry-modal-title"
+          className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-2xs"
+        >
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-7 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded">
                   Direct Farm-Stay Enquiry
                 </span>
-                <h3 className="text-base font-bold text-stone-900 mt-1">
+                <h3 id="enquiry-modal-title" className="text-base font-bold text-stone-900 mt-1">
                   Enquiry for {stay.farmName}
                 </h3>
               </div>
               <button
                 onClick={() => setShowEnquiryModal(false)}
-                className="text-stone-400 hover:text-stone-700 text-lg font-bold"
+                aria-label="Close enquiry modal"
+                className="text-stone-400 hover:text-stone-700 text-lg font-bold px-1 rounded focus-visible:outline-2 focus-visible:outline-emerald-500"
               >
                 ✕
               </button>
@@ -401,43 +426,52 @@ export const FarmStayDetails: React.FC<FarmStayDetailsProps> = ({
               </div>
 
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">Your Full Name</label>
+                <label htmlFor="modal-guest-name" className="block font-semibold text-stone-700 mb-1">
+                  Your Full Name
+                </label>
                 <input
+                  id="modal-guest-name"
                   type="text"
                   value={touristName}
                   onChange={(e) => setTouristName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-stone-300"
+                  className="w-full px-3 py-2 rounded-lg border border-stone-300 focus-visible:ring-2 focus-visible:ring-emerald-500"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">Phone Number</label>
+                  <label htmlFor="modal-guest-phone" className="block font-semibold text-stone-700 mb-1">
+                    Phone Number
+                  </label>
                   <input
+                    id="modal-guest-phone"
                     type="tel"
                     value={touristPhone}
                     onChange={(e) => setTouristPhone(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-stone-300"
+                    className="w-full px-3 py-2 rounded-lg border border-stone-300 focus-visible:ring-2 focus-visible:ring-emerald-500"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">Email Address</label>
+                  <label htmlFor="modal-guest-email" className="block font-semibold text-stone-700 mb-1">
+                    Email Address
+                  </label>
                   <input
+                    id="modal-guest-email"
                     type="email"
                     value={touristEmail}
                     onChange={(e) => setTouristEmail(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-stone-300"
+                    className="w-full px-3 py-2 rounded-lg border border-stone-300 focus-visible:ring-2 focus-visible:ring-emerald-500"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">
+                <span className="block font-semibold text-stone-700 mb-1">
                   Preferred Activities to Experience
-                </label>
+                </span>
                 <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
                   {stay.activities.map((act) => (
                     <label key={act.id} className="flex items-center gap-2 cursor-pointer p-1.5 bg-stone-50 rounded border border-stone-200">
@@ -445,7 +479,7 @@ export const FarmStayDetails: React.FC<FarmStayDetailsProps> = ({
                         type="checkbox"
                         checked={selectedActivities.includes(act.title)}
                         onChange={() => toggleActivity(act.title)}
-                        className="rounded text-emerald-700"
+                        className="rounded text-emerald-700 focus-visible:ring-1 focus-visible:ring-emerald-500"
                       />
                       <span className="text-stone-800">{act.title} (₹{act.pricePerPerson})</span>
                     </label>
@@ -454,15 +488,16 @@ export const FarmStayDetails: React.FC<FarmStayDetailsProps> = ({
               </div>
 
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">
+                <label htmlFor="modal-dietary-notes" className="block font-semibold text-stone-700 mb-1">
                   Dietary Preferences / Special Requests
                 </label>
                 <textarea
+                  id="modal-dietary-notes"
                   rows={2}
                   value={dietaryNotes}
                   onChange={(e) => setDietaryNotes(e.target.value)}
                   placeholder="e.g. Traditional vegetarian meal, traveling with 1 senior citizen..."
-                  className="w-full px-3 py-1.5 rounded-lg border border-stone-300"
+                  className="w-full px-3 py-1.5 rounded-lg border border-stone-300 focus-visible:ring-2 focus-visible:ring-emerald-500"
                 />
               </div>
 
@@ -476,16 +511,16 @@ export const FarmStayDetails: React.FC<FarmStayDetailsProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold flex items-center gap-1.5"
+                  className="px-6 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold flex items-center gap-1.5 focus-visible:outline-2 focus-visible:outline-emerald-600"
                 >
-                  <Send className="w-3.5 h-3.5" />
+                  <Send className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>Transmit Enquiry to Host</span>
                 </button>
               </div>
 
               {enquirySubmitted && (
-                <div className="p-3 bg-emerald-100 border border-emerald-300 text-emerald-900 rounded-xl text-center font-bold flex items-center justify-center gap-2">
-                  <Check className="w-4 h-4" />
+                <div className="p-3 bg-emerald-100 border border-emerald-300 text-emerald-900 rounded-xl text-center font-bold flex items-center justify-center gap-2" role="status" aria-live="polite">
+                  <Check className="w-4 h-4" aria-hidden="true" />
                   <span>Enquiry saved and routed to property operator! Redirecting to tracking...</span>
                 </div>
               )}
